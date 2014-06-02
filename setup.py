@@ -35,7 +35,9 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
-        # -*- Extra requirements: -*-
+        'Plone',
+        'gites.core',
+        'gites.db',
     ],
     extras_require={
         'test': [
