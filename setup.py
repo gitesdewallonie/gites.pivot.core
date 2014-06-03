@@ -38,13 +38,15 @@ setup(
         'Plone',
         'gites.core',
         'gites.db',
+        'gites.pivot.db',
     ],
     extras_require={
         'test': [
             'plone.app.testing',
         ],
     },
-    entry_points="""
-    # -*- Entry points: -*-
-    """,
+    entry_points={
+        'console_scripts': [
+            'import_pivot_changes = gites.pivot.core.scripts.changes:main',
+        ]}
 )
