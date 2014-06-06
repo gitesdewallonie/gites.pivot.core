@@ -42,6 +42,8 @@ setup(
     ],
     extras_require={
         'test': [
+            'affinitic.testing',
+            'gites.pivot.db [test]',
             'plone.app.testing',
         ],
     },
