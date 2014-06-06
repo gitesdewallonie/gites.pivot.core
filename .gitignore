@@ -14,3 +14,7 @@ buildout-cache/
 include/
 lib/
 local/
+docs/Makefile
+docs/html/
+docs/doctrees/
+docs/make.bat

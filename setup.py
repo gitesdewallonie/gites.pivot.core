@@ -46,6 +46,9 @@ setup(
             'gites.pivot.db [test]',
             'plone.app.testing',
         ],
+        'docs': [
+            'docutils',
+        ],
     },
     entry_points={
         'console_scripts': [

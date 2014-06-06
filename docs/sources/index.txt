@@ -1,0 +1,7 @@
+Documentation de gites.pivot.core
+=================================
+
+.. toctree::
+   :maxdepth: 2
+
+   changelog
