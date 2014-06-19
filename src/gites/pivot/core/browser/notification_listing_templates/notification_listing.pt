@@ -1,0 +1,23 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xml:lang="en" lang="en"
+      i18n:domain="gites">
+<head>
+</head>
+<body>
+<div>
+  <form tal:define="origins view/get_origins">
+    Origine:
+    <select name="origin">
+      <option tal:repeat="origin origins"
+              tal:attributes="value origin/pk">
+        <span tal:replace="origin/pk" />
+      </option>
+    </select>
+    <input type="submit" value="Filtrer" />
+  </form>
+
+  <div tal:content="structure view/get_table" />
+</div>
+</body>
+
+</html>
