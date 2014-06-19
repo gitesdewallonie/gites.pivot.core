@@ -11,7 +11,7 @@ from gites.pivot.core import testing
 from gites.pivot.core import utils
 
 
-class TestUtils(testing.PivotDBTestCase):
+class TestUtils(testing.PivotTestCase):
 
     def test_get_differences(self):
         obj1 = type('obj', (object, ), {'a': 1, 'b': 2, 'c': 3})()

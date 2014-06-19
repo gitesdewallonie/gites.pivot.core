@@ -7,7 +7,13 @@ Licensed under the GPL license, see LICENCE.txt for more details.
 Copyright by Affinitic sprl
 """
 
+from affinitic.db.interfaces import IDatabase
+from affinitic.db.utils import initialize_declarative_mappers, initialize_defered_mappers
 from gites.core.scripts.db import parseZCML
+from gites.db import DeclarativeBase
+from gites.db.content import Hebergement
+from gites.pivot.db.content import HebergementView
+from zope.component import getUtility
 
 import argparse
 import gites.pivot.core
@@ -18,6 +24,7 @@ def main():
     parser = argparse.ArgumentParser(description=desc)
     args = parser.parse_args()
     parseZCML(gites.pivot.core, file='script.zcml')
+    initializeDB()
     changes = PivotChanges(args)
     changes.process()
 
@@ -26,6 +33,25 @@ class PivotChanges(object):
 
     def __init__(self, args):
         self.args = args
+        self.pg_session = getUtility(IDatabase, 'postgres').session
 
     def process(self):
         pass
+
+    def getHebergementsCGT(self):
+        query = self.pg_session.query(Hebergement.heb_code_cgt)
+        return query.all()
+
+    def getLastChanges(self, date):
+        return HebergementView.get_last_changes(date)
+
+
+def initializeDB():
+    """
+    Initialize db and mappers for script and return a session
+    """
+    pg = getUtility(IDatabase, 'postgres')
+    session = pg.session
+    initialize_declarative_mappers(DeclarativeBase, pg.metadata)
+    initialize_defered_mappers(pg.metadata)
+    return session
