@@ -5,18 +5,33 @@
 </head>
 <body>
 <div>
-  <form tal:define="origins view/get_origins">
+
+  <form tal:define="origins view/get_origins;
+                    request_origin request/origin"
+        method="GET">
     Origine:
     <select name="origin">
-      <option tal:repeat="origin origins"
-              tal:attributes="value origin/pk">
-        <span tal:replace="origin/pk" />
-      </option>
+      <tal:for tal:repeat="origin origins">
+        <option tal:attributes="value origin/pk"
+                tal:condition="python: origin.pk == request_origin" SELECTED>
+          <span tal:replace="origin/pk" />
+        </option>
+        <option tal:attributes="value origin/pk"
+                tal:condition="python: not origin.pk == request_origin" >
+          <span tal:replace="origin/pk" />
+        </option>
+      </tal:for>
     </select>
     <input type="submit" value="Filtrer" />
   </form>
 
-  <div tal:content="structure view/get_table" />
+  <form tal:define="origins view/get_origins"
+        method="POST">
+    <div tal:content="structure view/get_table" />
+
+    <input type="submit" value="Appliquer les changements" />
+  </form>
+
 </div>
 </body>
 
