@@ -12,6 +12,9 @@ from affinitic.testing import DatabaseTestCase
 from affinitic.testing import BaseTestCase
 from gites.pivot.db.testing import PIVOT_RDB
 from zope.component import getUtility
+from gites.db.testing import PGScriptRDB
+
+PIVOTCORERDB = PGScriptRDB(name='PIVOTCORERDB', bases=(PIVOT_RDB, ))
 
 
 class PivotTestCase(BaseTestCase):
@@ -20,7 +23,7 @@ class PivotTestCase(BaseTestCase):
 
 class PivotDBTestCase(DatabaseTestCase):
     databases = ('pivot', )
-    layer = PIVOT_RDB
+    layer = PIVOTCORERDB
 
     @property
     def pivot_session(self):
