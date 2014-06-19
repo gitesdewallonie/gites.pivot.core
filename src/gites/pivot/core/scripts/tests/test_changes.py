@@ -12,13 +12,9 @@ from gites.pivot.core.scripts.changes import PivotChanges
 
 
 class TestChanges(testing.PivotDBTestCase):
-    layer = testing.PIVOT_RDB
     pivot_sql_file = ('toffres')
 
     def test_getHebergementsCGT(self):
-        self.mock(PivotChanges,
-                  'getHebergementsCGT',
-                  return_value=['1', '2'])
         changes = PivotChanges(None)
         hebergements = changes.getHebergementsCGT()
         self.assertEqual(hebergements, ['1', '2'])

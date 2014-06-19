@@ -14,7 +14,7 @@ from gites.pivot.db.testing import PIVOT_RDB
 from zope.component import getUtility
 from gites.db.testing import PGScriptRDB
 
-PIVOTCORERDB = PGScriptRDB(name='PIVOTCORERDB', bases=(PIVOT_RDB, ))
+PIVOT_CORE_RDB = PGScriptRDB(name='PIVOTCORERDB', bases=(PIVOT_RDB, ))
 
 
 class PivotTestCase(BaseTestCase):
@@ -22,9 +22,13 @@ class PivotTestCase(BaseTestCase):
 
 
 class PivotDBTestCase(DatabaseTestCase):
-    databases = ('pivot', )
-    layer = PIVOTCORERDB
+    databases = ('pivot', 'gite')
+    layer = PIVOT_CORE_RDB
 
     @property
     def pivot_session(self):
         return getUtility(IDatabase, 'mysql').session
+
+    @property
+    def gite_session(self):
+        return getUtility(IDatabase, 'postgres').session

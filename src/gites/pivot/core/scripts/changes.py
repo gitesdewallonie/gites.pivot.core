@@ -13,7 +13,6 @@ from gites.core.scripts.db import parseZCML
 from gites.db import DeclarativeBase
 from gites.db.content import Hebergement
 from gites.pivot.db.content import HebergementView
-from sqlalchemy import select
 from zope.component import getUtility
 
 import argparse
@@ -34,13 +33,14 @@ class PivotChanges(object):
 
     def __init__(self, args):
         self.args = args
+        self.pg_session = getUtility(IDatabase, 'postgres').session
 
     def process(self):
         pass
 
     def getHebergementsCGT(self):
-        query = select([Hebergement.heb_code_cgt])
-        return query.execute().fetchall()
+        query = self.pg_session.query(Hebergement.heb_code_cgt)
+        return query.all()
 
     def getLastChanges(self, date):
         return HebergementView.get_last_changes(date)
