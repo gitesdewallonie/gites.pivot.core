@@ -39,6 +39,7 @@ setup(
         'gites.core',
         'gites.db',
         'gites.pivot.db',
+        'plone.api',
     ],
     extras_require={
         'test': [
