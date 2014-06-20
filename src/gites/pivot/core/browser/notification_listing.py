@@ -22,16 +22,16 @@ from gites.db.content import (Notification,
 class HebComparisonView(grok.View):
     grok.context(zope.interface.Interface)
     grok.name(u'notification-listing')
-    grok.require('zope2.View')
+    grok.require('gdw.ViewAdmin')
     grok.template('notification_listing')
 
     @property
     def origin(self):
-        return self.request.get('origin', None)
+        return self.request.get('origin', 'GDW')
 
     @property
     def status(self):
-        return self.request.get('status', None)
+        return self.request.get('status', 'UNTREATED')
 
     def get_table(self):
         """ Returns the render of the table """

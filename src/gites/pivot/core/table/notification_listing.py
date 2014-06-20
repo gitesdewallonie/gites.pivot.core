@@ -21,7 +21,7 @@ from gites.db.content.notification import Notification
 class NotificationListingTable(table.Table):
     zope.interface.implements(interfaces.INotificationListingTable)
 
-    cssClasses = {'table': 'z3c-listing percent100 listing nosort comparison'}
+    cssClasses = {'table': 'z3c-listing percent100 listing nosort'}
     cssClassEven = u'odd'
     cssClassOdd = u'even'
     sortOn = None
