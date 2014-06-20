@@ -153,7 +153,29 @@ class NotificationListingColumnTreated(NotificationListingColumn, grok.MultiAdap
         return header
 
     def renderCell(self, item):
-        return u'''
-                Oui: <input type="radio" name="notif_{0[pk]}" value="YES" />
-                Non: <input type="radio" name="notif_{0[pk]}" value="NO" />
-                '''.format({'pk': item.pk})
+        origin = self.request.get('origin', 'GDW')
+        status = self.request.get('status', 'UNTREATED')
+
+        if status == 'UNTREATED':
+            if origin == "GDW":
+                yes = u'Traité'
+                no = u'Ignorer'
+            elif origin == "PIVOT":
+                yes = u'Accepter'
+                no = u'Refuser'
+
+            render = u'''
+                {0[yes]}: <input type="radio" name="notif_{0[pk]}" value="YES" />
+                {0[no]}: <input type="radio" name="notif_{0[pk]}" value="NO" />
+                '''.format({'yes': yes,
+                            'no': no,
+                            'pk': item.pk})
+        else:
+            if origin == "GDW":
+                yes = u'Traité'
+                no = u'Ignoré'
+            elif origin == "PIVOT":
+                yes = u'Accepté'
+                no = u'Refusé'
+            render = item.treated and yes or no
+        return render
