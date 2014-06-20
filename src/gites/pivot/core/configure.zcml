@@ -13,6 +13,8 @@
 
   </meta:directives>
 
+  <include package="gites.core" file="permissions.zcml" />
+
   <include package="five.grok" file="meta.zcml" />
   <include package="five.grok" />
 
