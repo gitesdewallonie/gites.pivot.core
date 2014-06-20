@@ -6,6 +6,7 @@ Created by mpeeters
 Licensed under the GPL license, see LICENCE.txt for more details.
 Copyright by Affinitic sprl
 """
+from datetime import datetime
 
 
 def get_differences(obj1, obj2, attributes):
@@ -32,3 +33,7 @@ def clean_value(value):
     if hasattr(value, 'strip'):
         return value.strip()
     return value
+
+
+def now():
+    return datetime.now()

@@ -6,14 +6,17 @@ Created by mpeeters
 Licensed under the GPL license, see LICENCE.txt for more details.
 Copyright by Affinitic sprl
 """
+from datetime import datetime
 
 from affinitic.db.interfaces import IDatabase
 from affinitic.db.utils import (initialize_declarative_mappers,
                                 initialize_defered_mappers)
 from gites.core.scripts.db import parseZCML
-from gites.pivot.core.utils import get_differences
+from gites.pivot.core.utils import (get_differences,
+                                    now)
 from gites.db import DeclarativeBase
-from gites.db.content import Hebergement
+from gites.db.content import (Hebergement,
+                              Notification)
 from gites.pivot.db.content import HebergementView
 from zope.component import getUtility
 
@@ -55,6 +58,8 @@ HEBCOLUMNS = ['heb_nom',
 def main():
     desc = 'Import changes from Pivot Database into GDW Database'
     parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('date', type=str,
+                        help='Last Changes. Example: 2013/01/01')
     args = parser.parse_args()
     parseZCML(gites.pivot.core, file='script.zcml')
     initializeDB()
@@ -66,34 +71,54 @@ class PivotChanges(object):
 
     def __init__(self, args):
         self.args = args
+        date = self.args.date.split('/')
+        self.date = datetime(int(date[0]),
+                             int(date[1]),
+                             int(date[2]), 0, 0, 0, 0)
         self.pg_session = getUtility(IDatabase, 'postgres').session
 
     def process(self):
-        differences = self.compareGitesWithPivot() or []
-        for diff in differences:
-            self.insertNotification(diff[1],
-                                    diff[2],
-                                    diff[0])
+        hebergements = self.compareGitesWithPivot() or []
+        for heb in hebergements:
+            for diff in heb[1]:
+                self.insertNotification(heb[0],
+                                        diff[1],
+                                        diff[2],
+                                        diff[0])
+        self.pg_session.commit()
 
     def compareGitesWithPivot(self):
-        # XXX Changer la date
-        from datetime import datetime
-        self.getHebergementsCGT()
-        hebsPivot = self.getLastChanges(datetime.now())
+        code_cgt = self.getHebergementsCGT()
+        code_cgt = [i.heb_code_cgt for i in code_cgt]
+        hebsPivot = self.getLastChanges()
+        hebsPivot = [i for i in hebsPivot if i.heb_code_cgt in code_cgt]
+        result = []
         for hebPivot in hebsPivot:
             heb = Hebergement.first(heb_code_cgt=hebPivot.heb_code_cgt)
             if heb:
-                return get_differences(heb, hebPivot, HEBCOLUMNS)
+                result.append((str(heb.heb_pk),
+                               get_differences(heb, hebPivot, HEBCOLUMNS), ))
+        return result
 
-    def insertNotification(self, obj1, obj2, attr):
-        pass
+    def insertNotification(self, pk, obj1, obj2, attr):
+        notif = Notification(origin='PIVOT',
+                             table='hebergement',
+                             column=attr,
+                             table_pk=str(pk),
+                             old_value=obj1,
+                             new_value=obj2,
+                             date=now(),
+                             treated=None,
+                             cmt=None,
+                             user=None)
+        self.pg_session.add(notif)
 
     def getHebergementsCGT(self):
         query = self.pg_session.query(Hebergement.heb_code_cgt)
         return query.all()
 
-    def getLastChanges(self, date):
-        return HebergementView.get_last_changes(date)
+    def getLastChanges(self):
+        return HebergementView.get_last_changes(self.date)
 
 
 def initializeDB():
