@@ -34,6 +34,25 @@ class NotificationListingTable(table.Table):
             (self.context, self.request, self), table_interfaces.IValues)
         return adapter.values
 
+    def renderRows(self):
+        """
+        Override of the default methods to group by table pk
+        """
+        counter = 0
+        rows = []
+        cssClasses = (self.cssClassEven, self.cssClassOdd)
+        append = rows.append
+        pk = ''
+        for row in self.rows:
+            cssClass = ''
+            if pk != row[0][0].table_pk:
+                pk = row[0][0].table_pk
+                cssClass = 'line '
+                counter += 1
+            cssClass = '%s%s' % (cssClass, cssClasses[counter % 2])
+            append(self.renderRow(row, cssClass))
+        return u''.join(rows)
+
 
 class NotificationListingValues(value.ValuesMixin,
                                 grok.MultiAdapter):
@@ -102,6 +121,15 @@ class NotificationListingColumnNewValue(NotificationListingColumn, grok.MultiAda
     header = u'Nouvelle valeur'
     attrName = u'new_value'
     weight = 60
+
+
+class NotificationListingColumnDate(NotificationListingColumn, grok.MultiAdapter):
+    grok.name('date')
+    header = u'Date'
+    weight = 70
+
+    def renderCell(self, item):
+        return getattr(item, 'date').strftime('%d-%m-%Y')
 
 
 class NotificationListingColumnCmt(NotificationListingColumn, grok.MultiAdapter):
