@@ -1,15 +1,39 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
       xml:lang="en" lang="en"
+      metal:use-macro="here/main_template/macros/master"
       i18n:domain="gites">
 <head>
 </head>
 <body>
-<div>
+<div metal:fill-slot="main">
 
   <form tal:define="origins view/get_origins;
-                    request_origin request/origin"
+                    request_origin view/origin;
+                    request_status view/status"
         method="GET">
-    Origine:
+    <label for="status">Statut:</label>
+    <select name="status">
+      <option tal:attributes="value string:UNTREATED"
+              tal:condition="python: 'UNTREATED' == request_status" SELECTED>
+        Non trait&eacute;
+      </option>
+      <option tal:attributes="value string:UNTREATED"
+              tal:condition="python: 'UNTREATED' != request_status">
+        Non trait&eacute;
+      </option>
+
+      <option tal:attributes="value string:TREATED"
+              tal:condition="python: 'TREATED' == request_status" SELECTED>
+        Trait&eacute;
+      </option>
+      <option tal:attributes="value string:TREATED"
+              tal:condition="python: 'TREATED' != request_status">
+        Trait&eacute;
+      </option>
+    </select>
+    <br />
+
+    <label for="origin">Origine:</label>
     <select name="origin">
       <tal:for tal:repeat="origin origins">
         <option tal:attributes="value origin/pk"
@@ -22,14 +46,18 @@
         </option>
       </tal:for>
     </select>
+    <br />
+
     <input type="submit" value="Filtrer" />
+    <br />
+    <br />
   </form>
 
   <form tal:define="origins view/get_origins"
         method="POST">
     <div tal:content="structure view/get_table" />
 
-    <input type="submit" value="Appliquer les changements" />
+    <input tal:condition="python: view.status=='UNTREATED'" type="submit" value="Appliquer les changements" />
   </form>
 
 </div>

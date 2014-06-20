@@ -21,7 +21,7 @@ from gites.db.content.notification import Notification
 class NotificationListingTable(table.Table):
     zope.interface.implements(interfaces.INotificationListingTable)
 
-    cssClasses = {'table': 'z3c-listing percent100 listing nosort comparison'}
+    cssClasses = {'table': 'z3c-listing percent100 listing nosort'}
     cssClassEven = u'odd'
     cssClassOdd = u'even'
     sortOn = None
@@ -34,6 +34,25 @@ class NotificationListingTable(table.Table):
             (self.context, self.request, self), table_interfaces.IValues)
         return adapter.values
 
+    def renderRows(self):
+        """
+        Override of the default methods to group by table pk
+        """
+        counter = 0
+        rows = []
+        cssClasses = (self.cssClassEven, self.cssClassOdd)
+        append = rows.append
+        pk = ''
+        for row in self.rows:
+            cssClass = ''
+            if pk != row[0][0].table_pk:
+                pk = row[0][0].table_pk
+                cssClass = 'line '
+                counter += 1
+            cssClass = '%s%s' % (cssClass, cssClasses[counter % 2])
+            append(self.renderRow(row, cssClass))
+        return u''.join(rows)
+
 
 class NotificationListingValues(value.ValuesMixin,
                                 grok.MultiAdapter):
@@ -44,9 +63,13 @@ class NotificationListingValues(value.ValuesMixin,
 
     @property
     def values(self):
+        status = self.request.get('status', 'UNTREATED')
         origin = self.request.get('origin', 'GDW')
 
-        values = Notification.get_untreated_notifications(origin)
+        if status == 'UNTREATED':
+            values = Notification.get_untreated_notifications(origin)
+        else:
+            values = Notification.get_treated_notifications(origin)
         return values
 
 
@@ -100,6 +123,15 @@ class NotificationListingColumnNewValue(NotificationListingColumn, grok.MultiAda
     weight = 60
 
 
+class NotificationListingColumnDate(NotificationListingColumn, grok.MultiAdapter):
+    grok.name('date')
+    header = u'Date'
+    weight = 70
+
+    def renderCell(self, item):
+        return getattr(item, 'date').strftime('%d-%m-%Y')
+
+
 class NotificationListingColumnCmt(NotificationListingColumn, grok.MultiAdapter):
     grok.name('cmt')
     header = u'Commentaire'
@@ -121,7 +153,29 @@ class NotificationListingColumnTreated(NotificationListingColumn, grok.MultiAdap
         return header
 
     def renderCell(self, item):
-        return u'''
-                Oui: <input type="radio" name="notif_{0[pk]}" value="YES" />
-                Non: <input type="radio" name="notif_{0[pk]}" value="NO" />
-                '''.format({'pk': item.pk})
+        origin = self.request.get('origin', 'GDW')
+        status = self.request.get('status', 'UNTREATED')
+
+        if status == 'UNTREATED':
+            if origin == "GDW":
+                yes = u'Traité'
+                no = u'Ignorer'
+            elif origin == "PIVOT":
+                yes = u'Accepter'
+                no = u'Refuser'
+
+            render = u'''
+                {0[yes]}: <input type="radio" name="notif_{0[pk]}" value="YES" />
+                {0[no]}: <input type="radio" name="notif_{0[pk]}" value="NO" />
+                '''.format({'yes': yes,
+                            'no': no,
+                            'pk': item.pk})
+        else:
+            if origin == "GDW":
+                yes = u'Traité'
+                no = u'Ignoré'
+            elif origin == "PIVOT":
+                yes = u'Accepté'
+                no = u'Refusé'
+            render = item.treated and yes or no
+        return render
