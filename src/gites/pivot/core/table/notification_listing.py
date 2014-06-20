@@ -44,9 +44,13 @@ class NotificationListingValues(value.ValuesMixin,
 
     @property
     def values(self):
+        status = self.request.get('status', 'UNTREATED')
         origin = self.request.get('origin', 'GDW')
 
-        values = Notification.get_untreated_notifications(origin)
+        if status == 'UNTREATED':
+            values = Notification.get_untreated_notifications(origin)
+        else:
+            values = Notification.get_treated_notifications(origin)
         return values
 
 

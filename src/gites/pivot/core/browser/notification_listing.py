@@ -14,7 +14,6 @@ from five import grok
 from gites.db.content import NotificationOrigin
 from gites.pivot.core.table import notification_listing
 
-from gites.db import session
 from gites.db.content import (Notification,
                               Hebergement,
                               LinkHebergementMetadata)
@@ -25,6 +24,14 @@ class HebComparisonView(grok.View):
     grok.name(u'notification-listing')
     grok.require('zope2.View')
     grok.template('notification_listing')
+
+    @property
+    def origin(self):
+        return self.request.get('origin', None)
+
+    @property
+    def status(self):
+        return self.request.get('status', None)
 
     def get_table(self):
         """ Returns the render of the table """
