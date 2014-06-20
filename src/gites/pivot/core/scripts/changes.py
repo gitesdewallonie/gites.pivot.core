@@ -25,34 +25,35 @@ import gites.pivot.core
 
 HEBCOLUMNS = ['heb_nom',
               'heb_adresse',
-              'com_cp',
               'heb_localite',
-              'com_nom',
-              'prov_nom',
-              'heb_maison_tourisme_fk',
               'heb_gps_long',
               'heb_gps_lat',
               'heb_nombre_epis',
               'heb_cgt_cap_min',
               'heb_cgt_cap_max',
               'heb_cgt_nbre_chmbre',
-              'heb_descriptif',
+              'heb_descriptif_fr',
               'heb_descriptif_nl',
               'heb_descriptif_uk',
               'heb_descriptif_de',
-              'heb_pointfort',
+              'heb_pointfort_fr',
               'heb_pointfort_nl',
               'heb_pointfort_uk',
               'heb_pointfort_de',
               'heb_gid_access_tous',
               'heb_animal',
               'heb_fumeur',
-              'heb_date_creation',
-              'heb_date_modification',
               'heb_lit_sup',
               'heb_lit_1p',
               'heb_lit_2p',
               'heb_lit_enf']
+
+COMCOLUMNS = ['com_cp',
+              'com_nom']
+
+PROVCOLUMNS = ['prov_nom']
+
+MAISCOLUMNS = ['mais_nom']
 
 
 def main():
@@ -80,8 +81,9 @@ class PivotChanges(object):
     def process(self):
         hebergements = self.compareGitesWithPivot() or []
         for heb in hebergements:
-            for diff in heb[1]:
-                self.insertNotification(heb[0],
+            for diff in heb['diff']:
+                self.insertNotification(heb['table'],
+                                        heb['pk'],
                                         diff[1],
                                         diff[2],
                                         diff[0])
@@ -96,13 +98,26 @@ class PivotChanges(object):
         for hebPivot in hebsPivot:
             heb = Hebergement.first(heb_code_cgt=hebPivot.heb_code_cgt)
             if heb:
-                result.append((str(heb.heb_pk),
-                               get_differences(heb, hebPivot, HEBCOLUMNS), ))
+                result.append({'table': 'hebergement',
+                               'pk': str(heb.heb_pk),
+                               'diff': get_differences(heb, hebPivot, HEBCOLUMNS)})
+                if heb.commune:
+                    result.append({'table': 'commune',
+                                   'pk': str(heb.commune.com_pk),
+                                   'diff': get_differences(heb.commune, hebPivot, COMCOLUMNS)})
+                if heb.province:
+                    result.append({'table': 'provinces',
+                                   'pk': str(heb.province[0].prov_pk),
+                                   'diff': get_differences(heb.province[0], hebPivot, PROVCOLUMNS)})
+                if heb.maisonTourisme:
+                    result.append({'table': 'maison_tourisme',
+                                   'pk': str(heb.maisonTourisme[0].mais_pk),
+                                   'diff': get_differences(heb.maisonTourisme[0], hebPivot, MAISCOLUMNS)})
         return result
 
-    def insertNotification(self, pk, obj1, obj2, attr):
+    def insertNotification(self, table, pk, obj1, obj2, attr):
         notif = Notification(origin='PIVOT',
-                             table='hebergement',
+                             table=table,
                              column=attr,
                              table_pk=str(pk),
                              old_value=obj1,

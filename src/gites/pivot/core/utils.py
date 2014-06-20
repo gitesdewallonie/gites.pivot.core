@@ -14,8 +14,8 @@ def get_differences(obj1, obj2, attributes):
     attributes"""
     diff = []
     for attr in attributes:
-        obj1_value = clean_value(getattr(obj1, attr, None)) or None
-        obj2_value = clean_value(getattr(obj2, attr, None)) or None
+        obj1_value = clean_value(getattr(obj1, attr, None))
+        obj2_value = clean_value(getattr(obj2, attr, None))
         if is_equal(obj1_value, obj2_value) is False:
             diff.append((attr, obj1_value, obj2_value))
     return diff
@@ -31,8 +31,10 @@ def is_equal(value1, value2):
 def clean_value(value):
     """Format value for comparisson"""
     if hasattr(value, 'strip'):
-        return value.strip()
-    return value
+        return value.strip() or None
+    if value is False:
+        return False
+    return value or None
 
 
 def now():

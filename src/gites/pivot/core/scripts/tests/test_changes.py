@@ -31,7 +31,5 @@ class TestChanges(testing.PivotDBTestCase):
         changes = PivotChanges(args)
         differences = changes.compareGitesWithPivot()
         self.assertEqual(len(differences), 1)
-        # heb_pk
-        self.assertEqual(differences[0][0], '81')
-        # tuple of diff
-        self.assertEqual(len(differences[0][1]), 22)
+        self.assertEqual(differences[0]['pk'], '81')
+        self.assertEqual(len(differences[0]['diff']), 19)
