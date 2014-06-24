@@ -83,7 +83,7 @@ class NotificationListingColumn(column.GetAttrColumn):
 
 class NotificationListingColumnOrigin(NotificationListingColumn, grok.MultiAdapter):
     grok.name('origin')
-    header = u'origin'
+    header = u'Origine'
     attrName = u'origin'
     weight = 10
 
