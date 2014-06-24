@@ -19,12 +19,14 @@ class TestChanges(testing.PivotDBTestCase):
         changes = PivotChanges(args)
         hebergements = changes.getHebergementsCGT()
         self.assertEqual(len(hebergements), 1)
+        changes.pg_session.close()
 
     def test_getLastChanges(self):
         args = type('args', (object, ), {'date': '2014/06/01'})()
         changes = PivotChanges(args)
         lastChanges = changes.getLastChanges()
         self.assertEqual(len(lastChanges), 1)
+        changes.pg_session.close()
 
     def test_compareGitesWithPivot(self):
         args = type('args', (object, ), {'date': '2014/06/01'})()
@@ -33,3 +35,4 @@ class TestChanges(testing.PivotDBTestCase):
         self.assertEqual(len(differences), 1)
         self.assertEqual(differences[0]['pk'], '81')
         self.assertEqual(len(differences[0]['diff']), 19)
+        changes.pg_session.close()
