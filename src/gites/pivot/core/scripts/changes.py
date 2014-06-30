@@ -87,16 +87,18 @@ class PivotChanges(object):
                                         diff[1],
                                         diff[2],
                                         diff[0])
-        self.pg_session.commit()
+            self.pg_session.commit()
+        self.pg_session.close()
 
     def compareGitesWithPivot(self):
         code_cgt = self.getHebergementsCGT()
         code_cgt = [i.heb_code_cgt for i in code_cgt]
         hebsPivot = self.getLastChanges()
-        hebsPivot = [i for i in hebsPivot if i.heb_code_cgt in code_cgt]
+        hebsPivot = [i for i in hebsPivot if i.code_interne_CGT in code_cgt]
+        hebergements = self.getHebergementsByCodeCgt([i.code_interne_CGT for i in hebsPivot])
         result = []
         for hebPivot in hebsPivot:
-            heb = Hebergement.first(heb_code_cgt=hebPivot.heb_code_cgt)
+            heb = hebergements[hebPivot.code_interne_CGT]
             if heb:
                 result.append({'table': 'hebergement',
                                'pk': str(heb.heb_pk),
@@ -131,6 +133,14 @@ class PivotChanges(object):
     def getHebergementsCGT(self):
         query = self.pg_session.query(Hebergement.heb_code_cgt)
         return query.all()
+
+    def getHebergementsByCodeCgt(self, list):
+        query = self.pg_session.query(Hebergement)
+        query = query.filter(Hebergement.heb_code_cgt.in_(list))
+        result = {}
+        for i in query.all():
+            result[i.heb_code_cgt] = i
+        return result
 
     def getLastChanges(self):
         return HebergementView.get_last_changes(self.date)
