@@ -82,13 +82,27 @@ class PivotChanges(object):
         hebergements = self.compareGitesWithPivot() or []
         for heb in hebergements:
             for diff in heb['diff']:
-                self.insertNotification(heb['table'],
-                                        heb['pk'],
-                                        diff[1],
-                                        diff[2],
-                                        diff[0])
+                if not self.notifDeniedExists(heb['table'],
+                                              heb['pk'],
+                                              diff[2],
+                                              diff[0]):
+                    self.insertNotification(heb['table'],
+                                            heb['pk'],
+                                            diff[1],
+                                            diff[2],
+                                            diff[0])
             self.pg_session.commit()
         self.pg_session.close()
+
+    def notifDeniedExists(self, table, pk, new_value, attr):
+        query = self.pg_session.query(Notification)
+        query = query.filter(Notification.origin == 'PIVOT')
+        query = query.filter(Notification.table == table)
+        query = query.filter(Notification.column == attr)
+        query = query.filter(Notification.table_pk == str(pk))
+        query = query.filter(Notification.new_value == str(new_value))
+        query = query.filter(Notification.treated == False)
+        return query.count()
 
     def compareGitesWithPivot(self):
         code_cgt = self.getHebergementsCGT()
