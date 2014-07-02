@@ -102,7 +102,7 @@ class PivotChanges(object):
 
     def notifDeniedExists(self, table, pk, new_value, attr):
         query = self.pg_session.query(Notification)
-        query = query.filter(Notification.origin == 'PIVOT')
+        query = query.filter(Notification.origin == self.origin)
         query = query.filter(Notification.table == table)
         query = query.filter(Notification.column == attr)
         query = query.filter(Notification.table_pk == str(pk))
