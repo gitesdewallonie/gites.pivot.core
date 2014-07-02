@@ -61,6 +61,9 @@ def main():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('date', type=str,
                         help='Last Changes. Example: 2013/01/01')
+    parser.add_argument('origin', type=str,
+                        choices=('PIVOT', 'GDW'),
+                        help='Origin of the changes: PIVOT or GDW')
     args = parser.parse_args()
     parseZCML(gites.pivot.core, file='script.zcml')
     initializeDB()
@@ -76,21 +79,24 @@ class PivotChanges(object):
         self.date = datetime(int(date[0]),
                              int(date[1]),
                              int(date[2]), 0, 0, 0, 0)
+        self.origin = self.args.origin
         self.pg_session = getUtility(IDatabase, 'postgres').session
+        self.mysql_session = getUtility(IDatabase, 'mysql').session
 
     def process(self):
         hebergements = self.compareGitesWithPivot() or []
         for heb in hebergements:
             for diff in heb['diff']:
+                attr, obj1, obj2 = diff
                 if not self.notifDeniedExists(heb['table'],
                                               heb['pk'],
-                                              diff[2],
-                                              diff[0]):
+                                              obj2,
+                                              attr):
                     self.insertNotification(heb['table'],
                                             heb['pk'],
-                                            diff[1],
-                                            diff[2],
-                                            diff[0])
+                                            obj1,
+                                            obj2,
+                                            attr)
             self.pg_session.commit()
         self.pg_session.close()
 
@@ -105,34 +111,37 @@ class PivotChanges(object):
         return query.count()
 
     def compareGitesWithPivot(self):
-        code_cgt = self.getHebergementsCGT()
-        code_cgt = [i.heb_code_cgt for i in code_cgt]
-        hebsPivot = self.getLastChanges()
-        hebsPivot = [i for i in hebsPivot if i.code_interne_CGT in code_cgt]
-        hebergements = self.getHebergementsByCodeCgt([i.code_interne_CGT for i in hebsPivot])
+        origin_changes = self.getLastChanges()
+        dest_hebergements = self.getHebergementsByCodeCgt([i.heb_code_cgt for i in origin_changes])
         result = []
-        for hebPivot in hebsPivot:
-            heb = hebergements[hebPivot.code_interne_CGT]
-            if heb:
+        for origin_change in origin_changes:
+            dest_heb = dest_hebergements[origin_change.heb_code_cgt]
+            if self.origin == 'PIVOT':
+                gdw_heb = dest_heb
+                pivot_heb = origin_change
+            elif self.origin == 'GDW':
+                gdw_heb = origin_change
+                pivot_heb = dest_heb
+            if gdw_heb:
                 result.append({'table': 'hebergement',
-                               'pk': str(heb.heb_pk),
-                               'diff': get_differences(heb, hebPivot, HEBCOLUMNS)})
-                if heb.commune:
+                               'pk': str(gdw_heb.heb_pk),
+                               'diff': get_differences(gdw_heb, pivot_heb, HEBCOLUMNS)})
+                if gdw_heb.commune:
                     result.append({'table': 'commune',
-                                   'pk': str(heb.commune.com_pk),
-                                   'diff': get_differences(heb.commune, hebPivot, COMCOLUMNS)})
-                if heb.province:
+                                   'pk': str(gdw_heb.commune.com_pk),
+                                   'diff': get_differences(gdw_heb.commune, pivot_heb, COMCOLUMNS)})
+                if gdw_heb.province:
                     result.append({'table': 'provinces',
-                                   'pk': str(heb.province[0].prov_pk),
-                                   'diff': get_differences(heb.province[0], hebPivot, PROVCOLUMNS)})
-                if heb.maisonTourisme:
+                                   'pk': str(gdw_heb.province[0].prov_pk),
+                                   'diff': get_differences(gdw_heb.province[0], pivot_heb, PROVCOLUMNS)})
+                if gdw_heb.maisonTourisme:
                     result.append({'table': 'maison_tourisme',
-                                   'pk': str(heb.maisonTourisme[0].mais_pk),
-                                   'diff': get_differences(heb.maisonTourisme[0], hebPivot, MAISCOLUMNS)})
+                                   'pk': str(gdw_heb.maisonTourisme[0].mais_pk),
+                                   'diff': get_differences(gdw_heb.maisonTourisme[0], pivot_heb, MAISCOLUMNS)})
         return result
 
     def insertNotification(self, table, pk, obj1, obj2, attr):
-        notif = Notification(origin='PIVOT',
+        notif = Notification(origin=self.origin,
                              table=table,
                              column=attr,
                              table_pk=str(pk),
@@ -144,20 +153,36 @@ class PivotChanges(object):
                              user=None)
         self.pg_session.add(notif)
 
-    def getHebergementsCGT(self):
-        query = self.pg_session.query(Hebergement.heb_code_cgt)
-        return query.all()
+    def getHebergementsByCodeCgt(self, codes):
+        if self.origin == 'PIVOT':
+            mapper = Hebergement
+            session = self.pg_session
+        elif self.origin == 'GDW':
+            mapper = HebergementView
+            session = self.mysql_session
 
-    def getHebergementsByCodeCgt(self, list):
-        query = self.pg_session.query(Hebergement)
-        query = query.filter(Hebergement.heb_code_cgt.in_(list))
+        query = session.query(mapper)
+        query = query.filter(mapper.heb_code_cgt.in_(codes))
         result = {}
         for i in query.all():
             result[i.heb_code_cgt] = i
         return result
 
     def getLastChanges(self):
-        return HebergementView.get_last_changes(self.date)
+        """
+        Get last changes in origin DB for hebs that are in the 2 databases
+        """
+        if self.origin == 'PIVOT':
+            gdw_hebs = self.pg_session.query(Hebergement.heb_code_cgt).all()
+            gdw_hebs_cgt = [i.heb_code_cgt for i in gdw_hebs]
+            last_changes = HebergementView.get_last_changes(self.date)
+            last_changes = [i for i in last_changes if i.heb_code_cgt in gdw_hebs_cgt]
+        elif self.origin == 'GDW':
+            pivot_hebs = self.mysql_session.query(HebergementView.heb_code_cgt).all()
+            pivot_hebs_cgt = [i.heb_code_cgt for i in pivot_hebs]
+            last_changes = Hebergement.get_last_changes(self.date, session=self.pg_session, cgt_not_empty=True)
+            last_changes = [i for i in last_changes if i.heb_code_cgt in pivot_hebs_cgt]
+        return last_changes
 
 
 def initializeDB():
