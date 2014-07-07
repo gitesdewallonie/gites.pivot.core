@@ -145,78 +145,48 @@ class PivotChanges(object):
                 gdw_heb = origin_change
                 pivot_heb = dest_heb
             if gdw_heb:
-                result.append({'table': 'hebergement',
-                               'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_heb, pivot_heb, HEBCOLUMNS)})
-                if gdw_heb.commune:
-                    result.append({'table': 'commune',
-                                   'pk': str(gdw_heb.commune.com_pk),
-                                   'diff': get_differences(gdw_heb.commune, pivot_heb, COMCOLUMNS)})
-                if gdw_heb.province:
-                    result.append({'table': 'provinces',
-                                   'pk': str(gdw_heb.province[0].prov_pk),
-                                   'diff': get_differences(gdw_heb.province[0], pivot_heb, PROVCOLUMNS)})
-                if gdw_heb.maisonTourisme:
-                    result.append({'table': 'maison_tourisme',
-                                   'pk': str(gdw_heb.maisonTourisme[0].mais_pk),
-                                   'diff': get_differences(gdw_heb.maisonTourisme[0], pivot_heb, MAISCOLUMNS)})
-        return result
-
-    def compareTarifs(self):
-        return
-        origin_changes = self.getLastTarifsChanges()
-        dest_hebergements = self.getHebergementsByCodeCgt([i.heb_code_cgt for i in origin_changes])
-        result = []
-        for origin_change in origin_changes:
-            dest_heb = dest_hebergements[origin_change.heb_code_cgt]
-            if self.origin == 'PIVOT':
-                gdw_heb = dest_heb
-                pivot_heb = origin_change
-            elif self.origin == 'GDW':
-                gdw_heb = origin_change
-                pivot_heb = dest_heb
-            if gdw_heb:
-                # HEBERGEMENT
-                result.append({'table': 'hebergement',
-                               'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_heb, pivot_heb, HEBCOLUMNS)})
+                diff = []
                 # COMMUNE
                 pivot_commune = get_best_match(self.pg_session, pivot_heb, Commune, COMCOLUMNS)
-                result.append({'table': 'hebergement',
-                               'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_heb.commune, pivot_commune, ['com_pk'])})
+                diff.extend(get_differences(gdw_heb.commune, pivot_commune, ['com_pk']))
+
                 # PROVINCE
                 pivot_province = get_best_match(self.pg_session, pivot_heb, Province, PROVCOLUMNS)
                 gdw_province = None
                 if gdw_heb.province:
                     gdw_province = gdw_heb.province[0]
-                result.append({'table': 'hebergement',
-                               'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_province, pivot_province, ['prov_pk'])})
+                diff.extend(get_differences(gdw_province, pivot_province, ['prov_pk']))
+
                 # MAISON TOURISME
                 pivot_tourisme = get_best_match(self.pg_session, pivot_heb, MaisonTourisme, MAISCOLUMNS)
                 gdw_tourisme = None
                 if gdw_heb.province:
                     gdw_tourisme = gdw_heb.maisonTourisme[0]
-                result.append({'table': 'hebergement',
-                               'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_tourisme, pivot_tourisme, ['mais_pk'])})
+                diff.extend(get_differences(gdw_tourisme, pivot_tourisme, ['mais_pk']))
+
                 # PROPRIO
                 pivot_contact = pivot_heb.get_first_contact(self.mysql_session)
-                result.append({'table': 'proprio',
-                               'pk': str(gdw_heb.proprio.pro_pk),
-                               'diff': get_differences(gdw_heb.proprio, pivot_contact, PROCOLUMNS)})
+                diff.extend(get_differences(gdw_heb.proprio, pivot_contact, PROCOLUMNS))
+
                 # PROPRIO CIVILITE
                 pivot_civilite = get_best_match(self.pg_session, pivot_contact, Civilite, CIVCOLUMNS)
-                result.append({'table': 'hebergement',
-                               'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_heb.proprio.civilite, pivot_civilite, ['civ_pk'])})
+                diff.extend(get_differences(gdw_heb.proprio.civilite, pivot_civilite, ['civ_pk']))
+
                 # PROPRIO COMMUNE
                 pivot_commune = get_best_match(self.pg_session, pivot_contact, Commune, COMCOLUMNS)
+                diff.extend(get_differences(gdw_heb.proprio.commune, pivot_commune, ['com_pk']))
+
+                # HEBERGEMENT
+                diff.extend(get_differences(gdw_heb, pivot_heb, HEBCOLUMNS))
+
                 result.append({'table': 'hebergement',
                                'pk': str(gdw_heb.heb_pk),
-                               'diff': get_differences(gdw_heb.proprio.commune, pivot_commune, ['com_pk'])})
+                               'diff': diff})
         return result
+
+    def compareTarifs(self):
+        return
+        origin_changes = self.getLastTarifsChanges()
 
     def insertNotification(self, table, pk, obj1, obj2, attr):
         notif = Notification(origin=self.origin,

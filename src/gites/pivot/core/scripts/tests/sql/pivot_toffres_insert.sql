@@ -123,3 +123,69 @@ VALUES
 	250,
 	null,
 	'CGT_0002_00000007');
+
+INSERT
+	INTO tcontacts(id_contact,
+	civilite,
+	nom,
+	prenom,
+	adresse,
+	numero,
+	boite,
+	id_ins,
+	ins,
+	cp,
+	localite,
+	commune,
+	telephone,
+	fax,
+	gsm,
+	email,
+	url)
+VALUES
+	(10017528,
+	'Monsieur',
+	'FIVET',
+	'Louis',
+	'Chansin',
+	'10',
+	null,
+	null,
+	null,
+	'5530',
+	'Durnal',
+	'Yvoir',
+	'+3283690167',
+	'+3283690167',
+	'+32477904980',
+	'laturbine@hotmail.com',
+	null);
+
+INSERT
+	INTO treloffrecontact(fk_toffres_codeCGT,
+	fk_tcontacts_id_contact,
+	type,
+	type_nl,
+	type_en,
+	type_de)
+VALUES
+	('CGT_0002_00000C26',
+	10017528,
+	'Propriétaire',
+	null,
+	null,
+	null);
+INSERT
+	INTO treloffrecontact(fk_toffres_codeCGT,
+	fk_tcontacts_id_contact,
+	type,
+	type_nl,
+	type_en,
+	type_de)
+VALUES
+	('CGT_0002_00000C26',
+	10017528,
+	'Propriétaire',
+	null,
+	null,
+	null);
