@@ -21,6 +21,19 @@ def get_differences(obj1, obj2, attributes):
     return diff
 
 
+def get_best_match(session, obj, mapper, columns):
+    if not obj:
+        return
+    query = session.query(mapper)
+    for column in columns:
+        map_attr = getattr(mapper, column)
+        obj_attr = getattr(obj, column)
+        query = query.filter(map_attr == obj_attr)
+    result = query.all()
+    if len(result) == 1:
+        return result[0]
+
+
 def is_equal(value1, value2):
     """Compare two value and return a boolean"""
     if hasattr(value1, 'lower') and hasattr(value2, 'lower'):
