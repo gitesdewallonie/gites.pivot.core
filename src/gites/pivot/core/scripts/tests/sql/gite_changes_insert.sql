@@ -482,3 +482,72 @@ VALUES
     false,
     null,
     null);
+
+INSERT
+	INTO tarifs(pk,
+	heb_pk,
+	"type",
+	subtype,
+	"date",
+	"user",
+	min,
+	max,
+	cmt,
+	valid)
+VALUES
+	(261,
+	81,
+	'LOW_SEASON',
+	'WEEK',
+	'2014-06-02 13:42:44.226784',
+	'alain',
+	100,
+	200,
+	null,
+	't');
+
+INSERT
+	INTO tarifs(pk,
+	heb_pk,
+	"type",
+	subtype,
+	"date",
+	"user",
+	min,
+	max,
+	cmt,
+	valid)
+VALUES
+	(262,
+	81,
+	'HIGH_SEASON',
+	'WEEK',
+	'2014-05-02 13:42:44.226784',
+	'alain',
+	100,
+	200,
+	null,
+	't');
+
+INSERT
+	INTO tarifs(pk,
+	heb_pk,
+	"type",
+	subtype,
+	"date",
+	"user",
+	min,
+	max,
+	cmt,
+	valid)
+VALUES
+	(263,
+	81,
+	'LOW_SEASON',
+	'WEEKEND',
+	'2014-06-02 13:42:44.226784',
+	'alain',
+	100,
+	200,
+	null,
+	'f');

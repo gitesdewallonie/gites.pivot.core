@@ -15,9 +15,11 @@ from gites.core.scripts.db import parseZCML
 from gites.pivot.core.utils import (get_differences,
                                     now)
 from gites.db import DeclarativeBase
-from gites.db.content import (Hebergement,
-                              Notification)
+from gites.db.content import Hebergement
+from gites.db.content import Notification
+from gites.db.content import Tarifs
 from gites.pivot.db.content import HebergementView
+from gites.pivot.db.content import TarifView
 from zope.component import getUtility
 
 import argparse
@@ -84,16 +86,18 @@ class PivotChanges(object):
         self.mysql_session = getUtility(IDatabase, 'mysql').session
 
     def process(self):
-        hebergements = self.compareGitesWithPivot() or []
-        for heb in hebergements:
-            for diff in heb['diff']:
+        changes = []
+        changes.extend(self.compareHebergements() or [])
+        changes.extend(self.compareTarifs() or [])
+        for change in changes:
+            for diff in change['diff']:
                 attr, obj1, obj2 = diff
-                if not self.notifDeniedExists(heb['table'],
-                                              heb['pk'],
+                if not self.notifDeniedExists(change['table'],
+                                              change['pk'],
                                               obj2,
                                               attr):
-                    self.insertNotification(heb['table'],
-                                            heb['pk'],
+                    self.insertNotification(change['table'],
+                                            change['pk'],
                                             obj1,
                                             obj2,
                                             attr)
@@ -110,8 +114,39 @@ class PivotChanges(object):
         query = query.filter(Notification.treated == False)
         return query.count()
 
-    def compareGitesWithPivot(self):
-        origin_changes = self.getLastChanges()
+    def compareHebergements(self):
+        origin_changes = self.getLastHebergementsChanges()
+        dest_hebergements = self.getHebergementsByCodeCgt([i.heb_code_cgt for i in origin_changes])
+        result = []
+        for origin_change in origin_changes:
+            dest_heb = dest_hebergements[origin_change.heb_code_cgt]
+            if self.origin == 'PIVOT':
+                gdw_heb = dest_heb
+                pivot_heb = origin_change
+            elif self.origin == 'GDW':
+                gdw_heb = origin_change
+                pivot_heb = dest_heb
+            if gdw_heb:
+                result.append({'table': 'hebergement',
+                               'pk': str(gdw_heb.heb_pk),
+                               'diff': get_differences(gdw_heb, pivot_heb, HEBCOLUMNS)})
+                if gdw_heb.commune:
+                    result.append({'table': 'commune',
+                                   'pk': str(gdw_heb.commune.com_pk),
+                                   'diff': get_differences(gdw_heb.commune, pivot_heb, COMCOLUMNS)})
+                if gdw_heb.province:
+                    result.append({'table': 'provinces',
+                                   'pk': str(gdw_heb.province[0].prov_pk),
+                                   'diff': get_differences(gdw_heb.province[0], pivot_heb, PROVCOLUMNS)})
+                if gdw_heb.maisonTourisme:
+                    result.append({'table': 'maison_tourisme',
+                                   'pk': str(gdw_heb.maisonTourisme[0].mais_pk),
+                                   'diff': get_differences(gdw_heb.maisonTourisme[0], pivot_heb, MAISCOLUMNS)})
+        return result
+
+    def compareTarifs(self):
+        return
+        origin_changes = self.getLastTarifsChanges()
         dest_hebergements = self.getHebergementsByCodeCgt([i.heb_code_cgt for i in origin_changes])
         result = []
         for origin_change in origin_changes:
@@ -168,9 +203,9 @@ class PivotChanges(object):
             result[i.heb_code_cgt] = i
         return result
 
-    def getLastChanges(self):
+    def getLastHebergementsChanges(self):
         """
-        Get last changes in origin DB for hebs that are in the 2 databases
+        Get last hebergements changes in origin DB for hebs that are in the 2 databases
         """
         if self.origin == 'PIVOT':
             gdw_hebs = self.pg_session.query(Hebergement.heb_code_cgt).all()
@@ -182,6 +217,23 @@ class PivotChanges(object):
             pivot_hebs_cgt = [i.heb_code_cgt for i in pivot_hebs]
             last_changes = Hebergement.get_last_changes(self.date, session=self.pg_session, cgt_not_empty=True)
             last_changes = [i for i in last_changes if i.heb_code_cgt in pivot_hebs_cgt]
+        return last_changes
+
+    def getLastTarifsChanges(self):
+        """
+        Get last tarifs changes in origin DB for hebs that are in the 2 databases
+        """
+        if self.origin == 'PIVOT':
+            # Attention je fais 2 fois cette requete
+            gdw_hebs = self.pg_session.query(Hebergement.heb_code_cgt).all()
+            gdw_hebs_cgt = [i.heb_code_cgt for i in gdw_hebs]
+            last_changes = TarifView.get_last_changes(self.date)
+            last_changes = [i for i in last_changes if i.heb_code_cgt in gdw_hebs_cgt]
+        elif self.origin == 'GDW':
+            pivot_hebs = self.mysql_session.query(HebergementView.heb_code_cgt).all()
+            pivot_hebs_cgt = [i.heb_code_cgt for i in pivot_hebs]
+            last_changes = Tarifs.get_last_changes(self.date, session=self.pg_session, cgt_not_empty=True)
+            last_changes = [i for i in last_changes if i.hebergement.heb_code_cgt in pivot_hebs_cgt]
         return last_changes
 
 

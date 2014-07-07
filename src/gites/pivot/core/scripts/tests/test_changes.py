@@ -28,11 +28,22 @@ class TestChanges(testing.PivotDBTestCase):
         exists = changes.notifDeniedExists('hebergement', '81', 'Namur', 'heb_localite')
         self.assertEqual(exists, 1)
 
-    def test_compareGitesWithPivot(self):
+    def test_compareHebergements(self):
         args = type('args', (object, ), {'date': '2014/06/01',
                                          'origin': 'PIVOT'})()
         changes = PivotChanges(args)
-        differences = changes.compareGitesWithPivot()
+        differences = changes.compareHebergements()
+        self.assertEqual(len(differences), 1)
+        self.assertEqual(differences[0]['pk'], '81')
+        self.assertEqual(len(differences[0]['diff']), 19)
+        changes.pg_session.close()
+
+    def test_compareTarifs(self):
+        return
+        args = type('args', (object, ), {'date': '2014/06/01',
+                                         'origin': 'PIVOT'})()
+        changes = PivotChanges(args)
+        differences = changes.compareTarifs()
         self.assertEqual(len(differences), 1)
         self.assertEqual(differences[0]['pk'], '81')
         self.assertEqual(len(differences[0]['diff']), 19)
@@ -61,18 +72,34 @@ class TestChanges(testing.PivotDBTestCase):
 
         changes.pg_session.close()
 
-    def test_getLastChanges(self):
+    def test_getLastHebergementsChanges(self):
         args = type('args', (object, ), {'date': '2014/06/01',
                                          'origin': 'PIVOT'})()
         changes = PivotChanges(args)
-        lastChanges = changes.getLastChanges()
+        lastChanges = changes.getLastHebergementsChanges()
         self.assertEqual(len(lastChanges), 1)
         changes.pg_session.close()
 
-    def test_getLastChangesGdw(self):
+    def test_getLastHebergementsChangesGdw(self):
         args = type('args', (object, ), {'date': '2014/06/01',
                                          'origin': 'GDW'})()
         changes = PivotChanges(args)
-        lastChanges = changes.getLastChanges()
+        lastChanges = changes.getLastHebergementsChanges()
+        self.assertEqual(len(lastChanges), 1)
+        changes.pg_session.close()
+
+    def test_getLastTarifsChanges(self):
+        args = type('args', (object, ), {'date': '2014/06/01',
+                                         'origin': 'PIVOT'})()
+        changes = PivotChanges(args)
+        lastChanges = changes.getLastTarifsChanges()
+        self.assertEqual(len(lastChanges), 1)
+        changes.pg_session.close()
+
+    def test_getLastTarifsChangesGdw(self):
+        args = type('args', (object, ), {'date': '2014/06/01',
+                                         'origin': 'GDW'})()
+        changes = PivotChanges(args)
+        lastChanges = changes.getLastTarifsChanges()
         self.assertEqual(len(lastChanges), 1)
         changes.pg_session.close()
