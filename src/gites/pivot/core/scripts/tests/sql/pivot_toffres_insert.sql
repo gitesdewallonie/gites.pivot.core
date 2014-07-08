@@ -122,7 +122,38 @@ VALUES
 	'2014-06-02',
 	250,
 	null,
-	'CGT_0002_00000007');
+	'CGT_0002_00000C26');
+
+INSERT
+	INTO ttarifs(id_tarif,
+	categorie,
+	type,
+	type_nl,
+	type_en,
+	type_de,
+	complement_info,
+	complement_info_nl,
+	complement_info_en,
+	complement_info_de,
+	date,
+	prix_min,
+	prix_max,
+	fk_toffres_codeCGT)
+VALUES
+	(12215334,
+	0,
+	'Haute saison - (Semaine)',
+	'Hoogseizoen - (Week)',
+	null,
+	null,
+	null,
+	null,
+	null,
+	null,
+	'2014-03-02',
+	190,
+	null,
+	'CGT_0002_00000C26');
 
 INSERT
 	INTO tcontacts(id_contact,

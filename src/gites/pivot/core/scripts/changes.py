@@ -75,6 +75,72 @@ PROCOLUMNS = ['pro_nom1',
 
 CIVCOLUMNS = ['civ_titre']
 
+TARIFCOLUMNS = ['min',
+                'max',
+                'cmt']
+
+TARIF_TYPES_CORRESPONDACE = {
+    "Basse saison - (Mid-week)": ('', ''),
+    "Basse saison - (Semaine)": ('LOW_SEASON', 'WEEK'),
+    "Basse saison - (Week-end)": ('LOW_SEASON', 'WEEKEND'),
+    "Chambre 1 personne + petit déjeuner / nuit": ('', ''),
+    "Chambre 1 personne sans petit déjeuner / nuit": ('ROOM', '1_PERSON'),
+    "Chambre 2 personne sans petit déjeuner / nuit": ('ROOM', '2_PERSONS'),
+    "Chambre 2 personnes + petit déjeuner / nuit": ('', ''),
+    "Chambre 3 personnes + petit déjeuner / nuit": ('', ''),
+    "Chambre 4 personnes + petit déjeuner / nuit": ('', ''),
+    "Chambre sans petit déjeuner / nuit": ('', ''),
+    "Charges": ('', ''),
+    "Charges en calcul forfaitaire": ('CHARGES', 'INCLUSIVE'),
+    "Charges incluses": ('CHARGES', 'INCLUDED'),
+    "Charges selon consommation": ('CHARGES', 'ACCORDING_TO_CONSUMPTION'),
+    "Déduction si pas de petit déjeuner": ('', ''),
+    "Garantie": ('OTHER', 'GUARANTEE'),
+    "Haute saison - (Mid-week)": ('', ''),
+    "Haute saison - (Semaine)": ('HIGH_SEASON', 'WEEK'),
+    "Haute saison - (Week-end)": ('HIGH_SEASON', 'WEEKEND'),
+    "Moyenne saison - (Mid-week)": ('', ''),
+    "Moyenne saison - (Semaine)": ('MEDIUM_SEASON', 'WEEK'),
+    "Moyenne saison - (Week-end)": ('MEDIUM_SEASON', 'WEEKEND'),
+    "Nettoyage": ('', ''),
+    "Nettoyage inclus dans le montant de la location": ('', ''),
+    "Nettoyage par le locataire ou ....€": ('', ''),
+    "Réduction enfant / nuitée": ('', ''),
+    "Réduction enfant / repas": ('', ''),
+    "Semaine de fin année (Noël/Nouvel An)": ('OTHER', 'END_OF_YEAR'),
+    "Supplément 1 repas / personne / nuit": ('', ''),
+    "Supplément enfant / personne / nuit": ('', ''),
+    "Supplément table d'hôtes": ('OTHER', 'TABLES_HOTES'),
+    "Tarif spécial": ('', ''),
+    "Taxe de séjour € / jour / personne": ('OTHER', 'SOJOURN_TAX'),
+    "Week-end de fête": ('', ''),
+    "Week-end de fête / 3 nuits": ('FEAST_WEEKEND', '3_NIGHTS'),
+    "Week-end de fête / 4 nuits": ('FEAST_WEEKEND', '4_NIGHTS'),
+}
+
+"""
+# LOW_SEASON	WEEK	t	f
+# LOW_SEASON	WEEKEND	t	f
+# MEDIUM_SEASON	WEEK	t	f
+# MEDIUM_SEASON	WEEKEND	t	f
+# HIGH_SEASON	WEEK	t	f
+# HIGH_SEASON	WEEKEND	t	f
+# FEAST_WEEKEND	3_NIGHTS	t	f
+# FEAST_WEEKEND	4_NIGHTS	t	f
+# CHARGES	ACCORDING_TO_CONSUMPTION	t	f
+# CHARGES	INCLUDED	t	f
+# CHARGES	INCLUSIVE	t	f
+# ROOM	1_PERSON	f	t
+# ROOM	2_PERSONS	f	t
+ROOM	PERSON_SUP	f	t
+# OTHER	END_OF_YEAR	t	t
+# OTHER	GUARANTEE	t	t
+OTHER	OTHER	t	t
+# OTHER	SOJOURN_TAX	t	t
+OTHER	WITHOUT_BREAKFAST	t	t
+OTHER	TABLE_HOTES	t	t
+"""
+
 
 def main():
     desc = 'Import changes from Pivot Database into GDW Database'
@@ -185,8 +251,99 @@ class PivotChanges(object):
         return result
 
     def compareTarifs(self):
-        return
+        """
+        Compare tarifs between pivot and gites_wallons databases
+        First get the last tarifs changes from the origin database
+        Then compare with the destination database if the data is different
+        Must be the same type, subtype, and heb
+        pivot_tarif:
+            code_cgt: GRNA1153 Basse saison - (Semaine) 200
+        gdw_tarif:
+            heb_pk: 81 LOW_SEASON WEEK 100
+
+        return [{'table': 'tarifs',
+                 'pk': tarif.pk,
+                 'diff': [('min', 100, 110),
+                          ('max', 200, 210)]},
+                {'table': 'tarifs',
+                 'pk': tarif.pk,
+                 'diff': [('min', 50, 55),
+                          ('cmt', 'foo', 'bar')]}]
+        """
         origin_changes = self.getLastTarifsChanges()
+        dest_hebergements = self.getHebergementsByCodeCgt([i.heb_code_cgt for i in origin_changes])
+        result = []
+        for origin_change in origin_changes:
+            dest_heb = dest_hebergements[origin_change.heb_code_cgt]
+
+            comparisons = []
+            if self.origin == 'PIVOT':
+                gdw_tarifs = Tarifs.get_hebergement_tarifs(heb_pk=dest_heb.heb_pk)
+                pivot_tarif = origin_change
+                comparisons = self.get_tarifs_comparisons_pivot(gdw_tarifs, pivot_tarif)
+            elif self.origin == 'GDW':
+                gdw_tarif = origin_change
+                pivot_tarifs = TarifView.get(code_interne_CGT=dest_heb.code_interne_CGT)
+                comparisons = self.get_tarifs_comparisons_gdw(pivot_tarifs, gdw_tarif)
+
+            result.extend(comparisons)
+
+        return result
+
+    def get_tarifs_comparisons_pivot(self, gdw_tarifs, pivot_tarif):
+        """
+        Get the differences for all lines
+
+        gdw_tarifs = [gdw_tarif_1, gdw_tarif_2]
+        gdw_tarif_1.type = LOW_SEASON
+        gdw_tarif_1.subtype = WEEK
+        gdw_tarif_1.min = 100
+        gdw_tarif_1.max = 200
+        gdw_tarif_1.cmt = null
+
+        gdw_tarif_2.type = HIGH_SEASON
+        gdw_tarif_2.subtype = WEEKEND
+        gdw_tarif_2.min = 50
+        gdw_tarif_2.max = 80
+        gdw_tarif_2.cmt = null
+
+        pivot_tarif.type = 'Basse saison - (Semaine)'
+        pivot_tarif.min = 110
+        pivot_tarif.max = 210
+        pivot_tarif.complement_info = null
+
+        return [{'table': 'tarifs',
+                'pk': gdw_tarif_1.pk,
+                'diff': [('min', 100, 110),
+                        ('max', 200, 210)]}]
+        """
+        comparisons = []
+        #XXX gérer les tarifs qui sont d'un coté mais pas du tout de l'autre
+        for gdw_tarif in gdw_tarifs:
+            if self._is_same_tarif_type(pivot_tarif, gdw_tarif):
+                differences = get_differences(pivot_tarif, gdw_tarif, TARIFCOLUMNS)
+                if differences:
+                    comparisons.append({'table': 'tarifs',
+                                        'pk': str(gdw_tarif.pk),
+                                        'diff': differences})
+        return comparisons
+
+    def get_tarifs_comparisons_gdw(self, pivot_tarifs, gdw_tarif):
+        #XXX gérer les changements venant de la db GDW
+        comparisons = []
+        if self.origin == 'GDW':
+            pass
+        return comparisons
+
+    def _is_same_tarif_type(self, pivot_tarif, gdw_tarif):
+        """
+        Check if the tarifs are same type, regarding the differences between the 2 DB
+        """
+        type, subtype = TARIF_TYPES_CORRESPONDACE.get(pivot_tarif.type)
+        if gdw_tarif.type == type and gdw_tarif.subtype == subtype:
+            return True
+        else:
+            return False
 
     def insertNotification(self, table, pk, obj1, obj2, attr):
         notif = Notification(origin=self.origin,

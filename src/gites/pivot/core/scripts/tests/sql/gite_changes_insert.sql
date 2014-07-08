@@ -495,6 +495,29 @@ INSERT
 	cmt,
 	valid)
 VALUES
+	(260,
+	81,
+	'HIGH_SEASON',
+	'WEEK',
+	'2014-03-02 13:42:44.226784',
+	'alain',
+	110,
+	210,
+	null,
+	't');
+
+INSERT
+	INTO tarifs(pk,
+	heb_pk,
+	"type",
+	subtype,
+	"date",
+	"user",
+	min,
+	max,
+	cmt,
+	valid)
+VALUES
 	(261,
 	81,
 	'LOW_SEASON',

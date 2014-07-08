@@ -11,7 +11,17 @@ from datetime import datetime
 
 def get_differences(obj1, obj2, attributes):
     """Get the differences between two object limited to a list of given
-    attributes"""
+    attributes
+    Exemple:
+
+    obj1.value1 = 10
+    obj1.value2 = 'hello'
+
+    obj2.value1 = 20
+    obj2.value2 = 'hello'
+
+    return [('value1', 10, 20)]
+    """
     diff = []
     for attr in attributes:
         obj1_value = clean_value(getattr(obj1, attr, None))

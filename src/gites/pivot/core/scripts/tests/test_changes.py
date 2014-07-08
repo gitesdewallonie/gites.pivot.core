@@ -28,7 +28,7 @@ class TestChanges(testing.PivotDBTestCase):
         exists = changes.notifDeniedExists('hebergement', '81', 'Namur', 'heb_localite')
         self.assertEqual(exists, 1)
 
-    def test_compareHebergements(self):
+    def test_compareHebergementsPivot(self):
         args = type('args', (object, ), {'date': '2014/06/01',
                                          'origin': 'PIVOT'})()
         changes = PivotChanges(args)
@@ -38,9 +38,22 @@ class TestChanges(testing.PivotDBTestCase):
         self.assertEqual(len(differences[0]['diff']), 22)
         changes.pg_session.close()
 
-    def test_compareTarifs(self):
+    def test_compareHebergementsGdw(self):
         return
-        self.assertFalse(True)
+
+    def test_compareTarifsPivot(self):
+        args = type('args', (object, ), {'date': '2014/06/01',
+                                         'origin': 'PIVOT'})()
+        changes = PivotChanges(args)
+        differences = changes.compareTarifs()
+        self.assertEqual(len(differences), 1)
+        self.assertEqual(differences[0]['pk'], '262')
+        self.assertEqual(len(differences[0]['diff']), 2)
+        changes.pg_session.close()
+
+    def test_compareTarifsGdw(self):
+        return
+
 
     def test_insertNotification(self):
         args = type('args', (object, ), {'date': '2014/06/01',
