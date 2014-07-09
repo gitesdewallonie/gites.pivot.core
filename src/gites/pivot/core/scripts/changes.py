@@ -78,43 +78,43 @@ TARIFCOLUMNS = ['min',
                 'max',
                 'cmt']
 
-TARIF_TYPES_CORRESPONDACE = {
-    "Basse saison - (Mid-week)": ('', ''),
-    "Basse saison - (Semaine)": ('LOW_SEASON', 'WEEK'),
-    "Basse saison - (Week-end)": ('LOW_SEASON', 'WEEKEND'),
-    "Chambre 1 personne + petit déjeuner / nuit": ('', ''),
-    "Chambre 1 personne sans petit déjeuner / nuit": ('ROOM', '1_PERSON'),
-    "Chambre 2 personne sans petit déjeuner / nuit": ('ROOM', '2_PERSONS'),
-    "Chambre 2 personnes + petit déjeuner / nuit": ('', ''),
-    "Chambre 3 personnes + petit déjeuner / nuit": ('', ''),
-    "Chambre 4 personnes + petit déjeuner / nuit": ('', ''),
-    "Chambre sans petit déjeuner / nuit": ('', ''),
-    "Charges": ('', ''),
-    "Charges en calcul forfaitaire": ('CHARGES', 'INCLUSIVE'),
-    "Charges incluses": ('CHARGES', 'INCLUDED'),
-    "Charges selon consommation": ('CHARGES', 'ACCORDING_TO_CONSUMPTION'),
-    "Déduction si pas de petit déjeuner": ('', ''),
-    "Garantie": ('OTHER', 'GUARANTEE'),
-    "Haute saison - (Mid-week)": ('', ''),
-    "Haute saison - (Semaine)": ('HIGH_SEASON', 'WEEK'),
-    "Haute saison - (Week-end)": ('HIGH_SEASON', 'WEEKEND'),
-    "Moyenne saison - (Mid-week)": ('', ''),
-    "Moyenne saison - (Semaine)": ('MEDIUM_SEASON', 'WEEK'),
-    "Moyenne saison - (Week-end)": ('MEDIUM_SEASON', 'WEEKEND'),
-    "Nettoyage": ('', ''),
-    "Nettoyage inclus dans le montant de la location": ('', ''),
-    "Nettoyage par le locataire ou ....€": ('', ''),
-    "Réduction enfant / nuitée": ('', ''),
-    "Réduction enfant / repas": ('', ''),
-    "Semaine de fin année (Noël/Nouvel An)": ('OTHER', 'END_OF_YEAR'),
-    "Supplément 1 repas / personne / nuit": ('', ''),
-    "Supplément enfant / personne / nuit": ('', ''),
-    "Supplément table d'hôtes": ('OTHER', 'TABLES_HOTES'),
-    "Tarif spécial": ('', ''),
-    "Taxe de séjour € / jour / personne": ('OTHER', 'SOJOURN_TAX'),
-    "Week-end de fête": ('', ''),
-    "Week-end de fête / 3 nuits": ('FEAST_WEEKEND', '3_NIGHTS'),
-    "Week-end de fête / 4 nuits": ('FEAST_WEEKEND', '4_NIGHTS'),
+TARIF_TYPES_CORRESPONDANCE = {
+    u"Basse saison - (Mid-week)": ('', ''),
+    u"Basse saison - (Semaine)": ('LOW_SEASON', 'WEEK'),
+    u"Basse saison - (Week-end)": ('LOW_SEASON', 'WEEKEND'),
+    u"Chambre 1 personne + petit déjeuner / nuit": ('', ''),
+    u"Chambre 1 personne sans petit déjeuner / nuit": ('ROOM', '1_PERSON'),
+    u"Chambre 2 personne sans petit déjeuner / nuit": ('ROOM', '2_PERSONS'),
+    u"Chambre 2 personnes + petit déjeuner / nuit": ('', ''),
+    u"Chambre 3 personnes + petit déjeuner / nuit": ('', ''),
+    u"Chambre 4 personnes + petit déjeuner / nuit": ('', ''),
+    u"Chambre sans petit déjeuner / nuit": ('', ''),
+    u"Charges": ('', ''),
+    u"Charges en calcul forfaitaire": ('CHARGES', 'INCLUSIVE'),
+    u"Charges incluses": ('CHARGES', 'INCLUDED'),
+    u"Charges selon consommation": ('CHARGES', 'ACCORDING_TO_CONSUMPTION'),
+    u"Déduction si pas de petit déjeuner": ('', ''),
+    u"Garantie": ('OTHER', 'GUARANTEE'),
+    u"Haute saison - (Mid-week)": ('', ''),
+    u"Haute saison - (Semaine)": ('HIGH_SEASON', 'WEEK'),
+    u"Haute saison - (Week-end)": ('HIGH_SEASON', 'WEEKEND'),
+    u"Moyenne saison - (Mid-week)": ('', ''),
+    u"Moyenne saison - (Semaine)": ('MEDIUM_SEASON', 'WEEK'),
+    u"Moyenne saison - (Week-end)": ('MEDIUM_SEASON', 'WEEKEND'),
+    u"Nettoyage": ('', ''),
+    u"Nettoyage inclus dans le montant de la location": ('', ''),
+    u"Nettoyage par le locataire ou ....€": ('', ''),
+    u"Réduction enfant / nuitée": ('', ''),
+    u"Réduction enfant / repas": ('', ''),
+    u"Semaine de fin année (Noël/Nouvel An)": ('OTHER', 'END_OF_YEAR'),
+    u"Supplément 1 repas / personne / nuit": ('', ''),
+    u"Supplément enfant / personne / nuit": ('', ''),
+    u"Supplément table d'hôtes": ('OTHER', 'TABLES_HOTES'),
+    u"Tarif spécial": ('', ''),
+    u"Taxe de séjour € / jour / personne": ('OTHER', 'SOJOURN_TAX'),
+    u"Week-end de fête": ('', ''),
+    u"Week-end de fête / 3 nuits": ('FEAST_WEEKEND', '3_NIGHTS'),
+    u"Week-end de fête / 4 nuits": ('FEAST_WEEKEND', '4_NIGHTS'),
 }
 
 """
@@ -328,7 +328,7 @@ class PivotChanges(object):
         # XXX gérer les tarifs qui sont d'un coté mais pas du tout de l'autre
         for gdw_tarif in gdw_tarifs:
             if self._is_same_tarif_type(pivot_tarif, gdw_tarif):
-                differences = get_differences(pivot_tarif, gdw_tarif, TARIFCOLUMNS)
+                differences = get_differences(gdw_tarif, pivot_tarif, TARIFCOLUMNS)
                 if differences:
                     comparisons.append({'table': 'tarifs',
                                         'pk': str(gdw_tarif.pk),
@@ -346,7 +346,7 @@ class PivotChanges(object):
         """
         Check if the tarifs are same type, regarding the differences between the 2 DB
         """
-        type, subtype = TARIF_TYPES_CORRESPONDACE.get(pivot_tarif.type)
+        type, subtype = TARIF_TYPES_CORRESPONDANCE.get(pivot_tarif.type)
         if gdw_tarif.type == type and gdw_tarif.subtype == subtype:
             return True
         else:
