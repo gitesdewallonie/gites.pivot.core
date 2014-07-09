@@ -23,7 +23,6 @@ from gites.db.content import Province
 from gites.db.content import Commune
 from gites.db.content import MaisonTourisme
 from gites.db.content import Civilite
-from gites.db.content import Notification
 
 from gites.pivot.db.content import HebergementView
 from gites.pivot.db.content import TarifView
@@ -176,14 +175,20 @@ class PivotChanges(object):
         for change in changes:
             for diff in change['diff']:
                 attr, obj1, obj2 = diff
+                if self.origin == 'PIVOT':
+                    old = obj1
+                    new = obj2
+                elif self.origin == 'GDW':
+                    old = obj2
+                    new = obj1
                 if not self.notifDeniedExists(change['table'],
                                               change['pk'],
-                                              obj2,
+                                              new,
                                               attr):
                     self.insertNotification(change['table'],
                                             change['pk'],
-                                            obj1,
-                                            obj2,
+                                            old,
+                                            new,
                                             attr)
             self.pg_session.commit()
         self.pg_session.close()
@@ -194,7 +199,7 @@ class PivotChanges(object):
         query = query.filter(Notification.table == table)
         query = query.filter(Notification.column == attr)
         query = query.filter(Notification.table_pk == str(pk))
-        query = query.filter(Notification.new_value == str(new_value))
+        query = query.filter(Notification.new_value == unicode(new_value))
         query = query.filter(Notification.treated == False)
         return query.count()
 
@@ -230,17 +235,19 @@ class PivotChanges(object):
                     gdw_tourisme = gdw_heb.maisonTourisme[0]
                 diff.extend(get_differences(gdw_tourisme, pivot_tourisme, ['mais_pk']))
 
-                # PROPRIO
-                pivot_contact = pivot_heb.get_first_contact(self.mysql_session)
-                diff.extend(get_differences(gdw_heb.proprio, pivot_contact, PROCOLUMNS))
+                # XXX Ne pas récupérer les proprios pour le moment. Plus d'info
+                # voir ticket #5832
+#                 # PROPRIO
+#                 pivot_contact = pivot_heb.get_first_contact(self.mysql_session)
+#                 diff.extend(get_differences(gdw_heb.proprio, pivot_contact, PROCOLUMNS))
 
-                # PROPRIO CIVILITE
-                pivot_civilite = get_best_match(self.pg_session, pivot_contact, Civilite, CIVCOLUMNS)
-                diff.extend(get_differences(gdw_heb.proprio.civilite, pivot_civilite, ['civ_pk']))
+#                 # PROPRIO CIVILITE
+#                 pivot_civilite = get_best_match(self.pg_session, pivot_contact, Civilite, CIVCOLUMNS)
+#                 diff.extend(get_differences(gdw_heb.proprio.civilite, pivot_civilite, ['civ_pk']))
 
-                # PROPRIO COMMUNE
-                pivot_commune = get_best_match(self.pg_session, pivot_contact, Commune, COMCOLUMNS)
-                diff.extend(get_differences(gdw_heb.proprio.commune, pivot_commune, ['com_pk']))
+#                 # PROPRIO COMMUNE
+#                 pivot_commune = get_best_match(self.pg_session, pivot_contact, Commune, COMCOLUMNS)
+#                 diff.extend(get_differences(gdw_heb.proprio.commune, pivot_commune, ['com_pk']))
 
                 # HEBERGEMENT
                 diff.extend(get_differences(gdw_heb, pivot_heb, HEBCOLUMNS))
@@ -318,7 +325,7 @@ class PivotChanges(object):
                         ('max', 200, 210)]}]
         """
         comparisons = []
-        #XXX gérer les tarifs qui sont d'un coté mais pas du tout de l'autre
+        # XXX gérer les tarifs qui sont d'un coté mais pas du tout de l'autre
         for gdw_tarif in gdw_tarifs:
             if self._is_same_tarif_type(pivot_tarif, gdw_tarif):
                 differences = get_differences(pivot_tarif, gdw_tarif, TARIFCOLUMNS)
@@ -329,7 +336,7 @@ class PivotChanges(object):
         return comparisons
 
     def get_tarifs_comparisons_gdw(self, pivot_tarifs, gdw_tarif):
-        #XXX gérer les changements venant de la db GDW
+        # XXX gérer les changements venant de la db GDW
         comparisons = []
         if self.origin == 'GDW':
             pass
