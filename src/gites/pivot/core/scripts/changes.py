@@ -23,9 +23,11 @@ from gites.db.content import Province
 from gites.db.content import Commune
 from gites.db.content import MaisonTourisme
 from gites.db.content import Civilite
+from gites.db.content import Proprio
 
 from gites.pivot.db.content import HebergementView
 from gites.pivot.db.content import TarifView
+from gites.pivot.db.content import ContactView
 from zope.component import getUtility
 
 import argparse
@@ -172,6 +174,7 @@ class PivotChanges(object):
         changes = []
         changes.extend(self.compareHebergements() or [])
         changes.extend(self.compareTarifs() or [])
+        changes.extend(self.compareProprios() or [])
         for change in changes:
             for diff in change['diff']:
                 attr, obj1, obj2 = diff
@@ -235,25 +238,59 @@ class PivotChanges(object):
                     gdw_tourisme = gdw_heb.maisonTourisme[0]
                 diff.extend(get_differences(gdw_tourisme, pivot_tourisme, ['mais_pk']))
 
-                # XXX Ne pas récupérer les proprios pour le moment. Plus d'info
-                # voir ticket #5832
-#                 # PROPRIO
-#                 pivot_contact = pivot_heb.get_first_contact(self.mysql_session)
-#                 diff.extend(get_differences(gdw_heb.proprio, pivot_contact, PROCOLUMNS))
-
-#                 # PROPRIO CIVILITE
-#                 pivot_civilite = get_best_match(self.pg_session, pivot_contact, Civilite, CIVCOLUMNS)
-#                 diff.extend(get_differences(gdw_heb.proprio.civilite, pivot_civilite, ['civ_pk']))
-
-#                 # PROPRIO COMMUNE
-#                 pivot_commune = get_best_match(self.pg_session, pivot_contact, Commune, COMCOLUMNS)
-#                 diff.extend(get_differences(gdw_heb.proprio.commune, pivot_commune, ['com_pk']))
-
                 # HEBERGEMENT
                 diff.extend(get_differences(gdw_heb, pivot_heb, HEBCOLUMNS))
 
                 result.append({'table': 'hebergement',
                                'pk': str(gdw_heb.heb_pk),
+                               'diff': diff})
+        return result
+
+    def potentialProprio(self, proprio):
+        result = []
+        if self.origin == 'PIVOT':
+            code_cgt = proprio.code_interne_CGT
+            query = self.pg_session.query(Hebergement)
+            query = query.filter(Hebergement.heb_code_cgt == code_cgt)
+            heb = query.first()
+            if heb:
+                result.append(heb.proprio)
+        elif self.origin == 'GDW':
+            hebs = proprio.hebergements
+            for heb in hebs:
+                query = self.mysql_session.query(ContactView)
+                query = query.filter(ContactView.code_interne_CGT == heb.heb_code_cgt)
+                contact = query.first()
+                if contact:
+                    result.append(contact)
+        return result
+
+    def compareProprios(self):
+        origin_changes = self.getLastPropriosChanges()
+        result = []
+        for origin_change in origin_changes:
+            for proprio in self.potentialProprio(origin_change):
+                diff = []
+                if self.origin == 'PIVOT':
+                    gdw_proprio = proprio
+                    pivot_contact = origin_change
+                elif self.origin == 'GDW':
+                    gdw_proprio = origin_change
+                    pivot_contact = proprio
+
+                # PROPRIO
+                diff.extend(get_differences(gdw_proprio, pivot_contact, PROCOLUMNS))
+
+                # PROPRIO CIVILITE
+                pivot_civilite = get_best_match(self.pg_session, pivot_contact, Civilite, CIVCOLUMNS)
+                diff.extend(get_differences(gdw_proprio.civilite, pivot_civilite, ['civ_pk']))
+
+                # PROPRIO COMMUNE
+                pivot_commune = get_best_match(self.pg_session, pivot_contact, Commune, COMCOLUMNS)
+                diff.extend(get_differences(gdw_proprio.commune, pivot_commune, ['com_pk']))
+
+                result.append({'table': 'proprio',
+                               'pk': str(gdw_proprio.pro_pk),
                                'diff': diff})
         return result
 
@@ -394,6 +431,16 @@ class PivotChanges(object):
             pivot_hebs_cgt = [i.heb_code_cgt for i in pivot_hebs]
             last_changes = Hebergement.get_last_changes(self.date, session=self.pg_session, cgt_not_empty=True)
             last_changes = [i for i in last_changes if i.heb_code_cgt in pivot_hebs_cgt]
+        return last_changes
+
+    def getLastPropriosChanges(self):
+        """
+        Get last proprios changes in origin DB for hebs that are in the 2 databases
+        """
+        if self.origin == 'PIVOT':
+            last_changes = ContactView.get()
+        elif self.origin == 'GDW':
+            last_changes = Proprio.get_last_changes(self.date, session=self.pg_session)
         return last_changes
 
     def getLastTarifsChanges(self):
