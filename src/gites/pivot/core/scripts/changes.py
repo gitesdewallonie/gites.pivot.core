@@ -362,7 +362,6 @@ class PivotChanges(object):
                         ('max', 200, 210)]}]
         """
         comparisons = []
-        # XXX gérer les tarifs qui sont d'un coté mais pas du tout de l'autre
         for gdw_tarif in gdw_tarifs:
             if self._is_same_tarif_type(pivot_tarif, gdw_tarif):
                 differences = get_differences(gdw_tarif, pivot_tarif, TARIFCOLUMNS)
