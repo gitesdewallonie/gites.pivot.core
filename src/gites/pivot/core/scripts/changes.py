@@ -203,7 +203,7 @@ class PivotChanges(object):
         query = query.filter(Notification.column == attr)
         query = query.filter(Notification.table_pk == str(pk))
         query = query.filter(Notification.new_value == unicode(new_value))
-        query = query.filter(Notification.treated == False)
+        query = query.filter(Notification.treated == False)  # noqa Disable pep8 E712
         return query.count()
 
     def compareHebergements(self):
@@ -322,12 +322,12 @@ class PivotChanges(object):
 
             comparisons = []
             if self.origin == 'PIVOT':
-                gdw_tarifs = Tarifs.get_hebergement_tarifs(heb_pk=dest_heb.heb_pk)
+                gdw_tarifs = Tarifs.get_hebergement_tarifs(heb_pk=dest_heb.heb_pk, session=self.pg_session)
                 pivot_tarif = origin_change
                 comparisons = self.get_tarifs_comparisons_pivot(gdw_tarifs, pivot_tarif)
             elif self.origin == 'GDW':
                 gdw_tarif = origin_change
-                pivot_tarifs = TarifView.get(code_interne_CGT=dest_heb.code_interne_CGT)
+                pivot_tarifs = TarifView.get(heb_code_cgt=dest_heb.heb_code_cgt)
                 comparisons = self.get_tarifs_comparisons_gdw(pivot_tarifs, gdw_tarif)
 
             result.extend(comparisons)
@@ -372,10 +372,14 @@ class PivotChanges(object):
         return comparisons
 
     def get_tarifs_comparisons_gdw(self, pivot_tarifs, gdw_tarif):
-        # XXX gérer les changements venant de la db GDW
         comparisons = []
-        if self.origin == 'GDW':
-            pass
+        for pivot_tarif in pivot_tarifs:
+            if self._is_same_tarif_type(pivot_tarif, gdw_tarif):
+                differences = get_differences(gdw_tarif, pivot_tarif, TARIFCOLUMNS)
+                if differences:
+                    comparisons.append({'table': 'tarifs',
+                                        'pk': str(gdw_tarif.pk),
+                                        'diff': differences})
         return comparisons
 
     def _is_same_tarif_type(self, pivot_tarif, gdw_tarif):
