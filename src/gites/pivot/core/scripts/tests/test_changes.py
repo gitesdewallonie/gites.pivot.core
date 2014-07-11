@@ -54,7 +54,6 @@ class TestChanges(testing.PivotDBTestCase):
     def test_compareTarifsGdw(self):
         return
 
-
     def test_insertNotification(self):
         args = type('args', (object, ), {'date': '2014/06/01',
                                          'origin': 'PIVOT'})()
