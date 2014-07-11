@@ -35,7 +35,7 @@ class TestChanges(testing.PivotDBTestCase):
         differences = changes.compareHebergements()
         self.assertEqual(len(differences), 1)
         self.assertEqual(differences[0]['pk'], '81')
-        self.assertEqual(len(differences[0]['diff']), 22)
+        self.assertEqual(len(differences[0]['diff']), 19)
         changes.pg_session.close()
 
     def test_compareHebergementsGdw(self):
@@ -53,7 +53,6 @@ class TestChanges(testing.PivotDBTestCase):
 
     def test_compareTarifsGdw(self):
         return
-
 
     def test_insertNotification(self):
         args = type('args', (object, ), {'date': '2014/06/01',
