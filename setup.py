@@ -22,8 +22,11 @@ setup(
     # http://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         "Programming Language :: Python",
+        "Programming Language :: Python :: 2.7",
+        "Framework :: Plone",
+        "Framework :: Plone :: 4.2",
     ],
-    keywords='',
+    keywords='Plone',
     author='Affinitic',
     author_email='support@lists.affinitic.be',
     url='https://github.com/gitesdewallonie/',
