@@ -43,6 +43,7 @@ setup(
         'gites.db',
         'gites.pivot.db',
         'plone.api',
+        'plone.z3ctable',
     ],
     extras_require={
         'test': [

@@ -16,16 +16,45 @@ from z3c.table import column, interfaces as table_interfaces, table, value
 
 from gites.pivot.core import interfaces
 from gites.db.content.notification import Notification
+from gites.db.content import (LinkHebergementMetadata,
+                              Metadata,
+                              Tarifs)
+from itertools import cycle
+from plone.z3ctable.batch import BatchProvider
+from zope.interface import Interface
+from zope.publisher.interfaces.browser import IBrowserRequest
+from ZTUtils import url_query, make_query
+
+BATCHSIZE = 30
+STARTBATCHINGAT = 0
 
 
-class NotificationListingTable(table.Table):
+class NotificationBatchProvider(BatchProvider, grok.MultiAdapter):
+    grok.adapts(Interface, IBrowserRequest, interfaces.INotificationListingTable)
+    grok.name('notificationbatch')
+
+    def makeUrl(self, index):
+        batch = self.batches[index]
+        baseQuery = dict(self.request.form)
+        query = {self.table.prefix + '-batchStart': batch.start,
+                 self.table.prefix + '-batchSize': batch.size}
+        baseQuery.update(query)
+        querystring = make_query(baseQuery)
+        base = url_query(self.request, omit=baseQuery.keys())
+        return '%s&%s' % (base, querystring)
+
+
+class NotificationListingTable(table.SequenceTable):
     zope.interface.implements(interfaces.INotificationListingTable)
 
-    cssClasses = {'table': 'z3c-listing percent100 listing nosort'}
+    # Defines if the table must be rendered if there's no values
+    render_none = False
+    cssClasses = {'table': 'z3c-listing percent100 listing notification-listing'}
     cssClassEven = u'odd'
     cssClassOdd = u'even'
     sortOn = None
-    startBatchingAt = 30
+    batchSize = BATCHSIZE
+    startBatchingAt = STARTBATCHINGAT
 
     @property
     def values(self):
@@ -33,6 +62,30 @@ class NotificationListingTable(table.Table):
         adapter = zope.component.getMultiAdapter(
             (self.context, self.request, self), table_interfaces.IValues)
         return adapter.values
+
+    def update(self):
+        """
+        Override method for update from SequenceTable that adds a
+        batchProvideAdapter before the update
+        """
+        self.batchProviderName = 'notificationbatch'
+        table.SequenceTable.update(self)
+
+    def render(self):
+        """ Overrides of the render method from SequenceTable """
+        if not len(self.rows) and self.render_none is False:
+            return None
+        return "%s%s%s" % (
+            self.renderBatch(),
+            super(table.SequenceTable, self).render(),
+            self.renderBatch())
+
+    def setUpRows(self):
+        values, self.length = self.values
+        rows = [self.setUpRow(item) for item in values]
+        rowsCycle = CycleList(rows)
+        rowsCycle.length = self.length
+        return rowsCycle
 
     def renderRows(self):
         """
@@ -54,6 +107,45 @@ class NotificationListingTable(table.Table):
         return u''.join(rows)
 
 
+class CycleList(cycle):
+    """
+    simulate a list with a cycle iterable
+    You have to define the length of the simulated list
+    foo = CycleList()
+    foo.length = myLength
+    """
+
+    length = 0
+
+    def __getitem__(self, number):
+        if isinstance(number, int):
+            for i in range(BATCHSIZE):
+                if i == number:
+                    item = self.next()
+                else:
+                    self.next()
+            return item
+
+        elif isinstance(number, slice):
+            start = number.start or 0
+            stop = number.stop or BATCHSIZE
+            itemList = []
+            rangeOfSlice = range(start, stop)
+            for i in range(BATCHSIZE + start):
+                if i in rangeOfSlice:
+                    itemList.append(self.next())
+                else:
+                    self.next()
+            return itemList
+        else:
+            errorMessage = """CycleList indices must be integers, not %s""" % \
+                type(number).__name__
+            raise TypeError(errorMessage)
+
+    def __len__(self):
+        return self.length
+
+
 class NotificationListingValues(value.ValuesMixin,
                                 grok.MultiAdapter):
     grok.provides(table_interfaces.IValues)
@@ -70,7 +162,34 @@ class NotificationListingValues(value.ValuesMixin,
             values = Notification.get_untreated_notifications(origin)
         else:
             values = Notification.get_treated_notifications(origin)
-        return values
+        return self.mappingNotification(values), len(values)
+
+    def mappingNotification(self, values):
+        listing = []
+        for notif in values:
+            table_pk = notif.table_pk
+            column = notif.column
+            if notif.table == 'link_hebergement_metadata':
+                link = LinkHebergementMetadata.first(link_met_pk=notif.table_pk)
+                meta = Metadata.first(met_pk=link.metadata_fk)
+                table_pk = '%s (Heb: %s)' % (notif.table_pk, link.heb_fk)
+                column = '%s (%s)' % (notif.column, meta.met_titre_fr)
+            elif notif.table == 'tarifs':
+                tarif = Tarifs.first(pk=notif.table_pk)
+                table_pk = "%s (Heb: %s)" % (notif.table_pk, tarif.heb_pk)
+                column = "%s (%s/%s)" % (notif.column, tarif.type, tarif.subtype)
+            listing.append(type('obj', (object,), {'pk': notif.pk,
+                                                   'origin': notif.origin,
+                                                   'table': notif.table,
+                                                   'column': column,
+                                                   'table_pk': table_pk,
+                                                   'old_value': notif.old_value,
+                                                   'new_value': notif.new_value,
+                                                   'date': notif.date,
+                                                   'treated': notif.treated,
+                                                   'cmt': notif.cmt,
+                                                   'user': notif.user}))
+        return listing
 
 
 class NotificationListingColumn(column.GetAttrColumn):
