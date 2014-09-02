@@ -22,6 +22,8 @@ from gites.db.content import Tarifs
 from gites.db.content import Province
 from gites.db.content import Commune
 from gites.db.content import MaisonTourisme
+from gites.db.content import Metadata
+from gites.db.content import LinkHebergementMetadata
 from gites.db.content import Civilite
 from gites.db.content import Proprio
 
@@ -51,12 +53,13 @@ HEBCOLUMNS = ['heb_nom',
               'heb_pointfort_uk',
               'heb_pointfort_de',
               'heb_gid_access_tous',
-              'heb_animal',
-              'heb_fumeur',
               'heb_lit_sup',
               'heb_lit_1p',
               'heb_lit_2p',
               'heb_lit_enf']
+
+METADATAID = ['heb_fumeur',
+              'heb_animal']
 
 COMCOLUMNS = ['com_cp',
               'com_nom']
@@ -244,7 +247,32 @@ class PivotChanges(object):
                 result.append({'table': 'hebergement',
                                'pk': str(gdw_heb.heb_pk),
                                'diff': diff})
+
+                # METADATA
+                for met_id in METADATAID:
+                    metadiff = get_differences(gdw_heb, pivot_heb, [met_id])
+                    if len(metadiff) > 0:
+                        attr, obj1, obj2 = metadiff[0]
+                        # Change column name
+                        attr = 'link_met_value'
+                        metadata = self.getMetadata(met_id)
+                        gdw_link_heb_metadata = self.getLinkHebergementMetadata(gdw_heb.heb_pk, metadata.met_pk)
+                        result.append({'table': 'link_hebergement_metadata',
+                                       'pk': str(gdw_link_heb_metadata.link_met_pk),
+                                       'diff': [(attr, obj1, obj2)]})
+
         return result
+
+    def getMetadata(self, met_id):
+        query = self.pg_session.query(Metadata)
+        query = query.filter(Metadata.met_id == met_id)
+        return query.first()
+
+    def getLinkHebergementMetadata(self, heb_pk, met_pk):
+        query = self.pg_session.query(LinkHebergementMetadata)
+        query = query.filter(LinkHebergementMetadata.heb_fk == heb_pk)
+        query = query.filter(LinkHebergementMetadata.metadata_fk == met_pk)
+        return query.first()
 
     def potentialProprio(self, proprio):
         result = []
