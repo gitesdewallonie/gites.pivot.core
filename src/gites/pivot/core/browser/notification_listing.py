@@ -17,6 +17,7 @@ from gites.pivot.core.table import notification_listing
 from gites.db.content import (Notification,
                               Hebergement,
                               LinkHebergementMetadata,
+                              Proprio,
                               Tarifs)
 
 
@@ -74,6 +75,7 @@ class HebComparisonView(grok.View):
 
     def _get_line(self, table_name, table_pk):
         mappers = {'hebergement': (Hebergement, 'heb_pk'),
+                   'proprio': (Proprio, 'pro_pk'),
                    'link_hebergement_metadata': (LinkHebergementMetadata, 'link_met_pk'),
                    'tarifs': (Tarifs, 'pk')}
 
