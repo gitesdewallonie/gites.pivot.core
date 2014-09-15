@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.1.1 (unreleased)
+0.1.1 (2014-09-15)
 ------------------
 
 - Add mappingNotification + Batching notification_listing : #5922 Affinitic
